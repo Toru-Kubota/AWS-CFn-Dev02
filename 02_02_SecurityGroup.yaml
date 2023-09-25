@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description:  Security Group for ALB/EC2
+
+Parameters:
+  AllowedIP:
+    Type: String
+
+Resources:
+  SgALB:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !ImportValue VPCId
+      GroupDescription: Security group for ALB
+      GroupName: Security group for ALB
+      SecurityGroupIngress:
+        - CidrIp: !Ref AllowedIP
+          Description: from http from my network
+          FromPort: 80
+          IpProtocol: tcp
+          ToPort: 80
+        - CidrIp: !Ref AllowedIP
+          Description: Allow https from my network
+          IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+
+  sgEC2:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !ImportValue VPCId
+      GroupDescription: Security group for EC2
+      GroupName: security group for EC2
+
+  ALBEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+        Description: EC2 Security Group
+        DestinationSecurityGroupId: !Ref sgEC2
+        GroupId: !Ref SgALB
+        IpProtocol: -1
+
+  EC2Ingress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+        Description: Allow HTTP access from ALB
+        FromPort: 80
+        ToPort: 80
+        IpProtocol: tcp
+        SourceSecurityGroupId: !Ref SgALB
+        GroupId: !Ref sgEC2
+
+Outputs:
+  SgALBId:
+    Value: !Ref SgALB
+    Export:
+      Name: SgALBId
+  SgEC2Id:
+    Value: !Ref sgEC2
+    Export:
+      Name: SgEC2Id

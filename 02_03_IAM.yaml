@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: Create IAM Policy / IAM Role for EC2 SSM Access
+
+Resources:
+  EC2RoleSSM:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: SSMRoleForEC2
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMFullAccess
+  InstanceProfileforEC2:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      InstanceProfileName: SSMRoleForEC2
+      Roles:
+        - !Ref EC2RoleSSM
+
+Outputs:
+  EC2RoleSSMId:
+    Value: !Ref EC2RoleSSM
+    Export:
+      Name: EC2RoleSSMId
+  InstanceProfileArn:
+    Value: !GetAtt InstanceProfileforEC2.Arn
+    Export:
+      Name: InstanceProfileArn

@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: ALB and Target Group
+
+Parameters:
+  Prefix:
+    Type: String
+
+Resources:
+  ExternalALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Type: application
+      Name: !Sub "${Prefix}-external-alb"
+      Scheme: internet-facing
+      IpAddressType: ipv4
+      SecurityGroups:
+        - !ImportValue SgALBId
+      Subnets:
+        - !ImportValue SubnetPublic1AId
+        - !ImportValue SubnetPublic1CId
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${Prefix}-external-alb-tg"
+      TargetType: instance
+      Protocol: HTTP
+      ProtocolVersion: HTTP1
+      Port: 80
+      VpcId: !ImportValue VPCId
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: /
+      HealthCheckPort: traffic-port
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 5
+      UnhealthyThresholdCount: 2
+      Matcher: 
+        HttpCode: "200"
+
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+      LoadBalancerArn: !Ref ExternalALB
+      Port: 80
+      Protocol: HTTP
+
+Outputs:
+  ExternalALBId:
+    Value: !Ref ExternalALB
+    Export:
+      Name: ExternalALBId
+  TargetGroupId:
+    Value: !Ref TargetGroup
+    Export:
+      Name: TargetGroupId

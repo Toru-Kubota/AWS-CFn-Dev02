@@ -1,0 +1,193 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: Network - VPC/Subnet/RouteTable/IGW
+
+Resources:
+#### VPC Setting ####
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: Vpc
+
+#### Subnet Setting ####
+### IGW Setting ###
+  Igw:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: igw
+  VpcgwAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+        Ref: Vpc
+      InternetGatewayId:
+        Ref: Igw
+
+### Public Subnet Setting ###
+## Subnet Setting ##
+  SubnetPublic1A:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.0.0/24
+      VpcId:
+        Ref: Vpc
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: ""
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: subnet-public-1a
+        - Key: Type
+          Value: Public
+  SubnetPublic1C:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.1.0/24
+      VpcId:
+        Ref: Vpc
+      AvailabilityZone:
+        Fn::Select:
+          - 1
+          - Fn::GetAZs: ""
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: subnet-public-1c
+        - Key: Type
+          Value: Public
+
+## Route Table Setting ##
+  RoutePublic1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: Vpc
+      Tags:
+        - Key: Name
+          Value: route-public1
+  RoutePublic1Association1A:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: RoutePublic1
+      SubnetId:
+        Ref: SubnetPublic1A
+  RoutePublic1Association1C:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: RoutePublic1
+      SubnetId:
+        Ref: SubnetPublic1C
+  RoutePublic1Default:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId:
+        Ref: RoutePublic1
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: Igw
+    DependsOn:
+      - VpcgwAttachment
+
+### Praivate Subnet Setting ###
+## Subnet Setting ##
+  SubnetPrivate1A:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.2.0/24
+      VpcId:
+        Ref: Vpc
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: ""
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: subnet-private-1a
+        - Key: Type
+          Value: Isolated
+  SubnetPrivate1C:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.3.0/24
+      VpcId:
+        Ref: Vpc
+      AvailabilityZone:
+        Fn::Select:
+          - 1
+          - Fn::GetAZs: ""
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: subnet-private-1c
+        - Key: Type
+          Value: Isolated
+
+## Route Table Setting ##
+  RoutePrivate1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: Vpc
+      Tags:
+        - Key: Name
+          Value: route-private1
+  RoutePrivate1Association1A:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: RoutePrivate1
+      SubnetId:
+        Ref: SubnetPrivate1A
+  RoutePrivate1Association1C:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: RoutePrivate1
+      SubnetId:
+        Ref: SubnetPrivate1C
+
+Outputs:
+### VPC ###
+  VPCId:
+    Value: !Ref Vpc
+    Export:
+      Name: VPCId
+### Subnet ###
+  SubnetPublic1AId:
+    Value: !Ref SubnetPublic1A
+    Export:
+      Name: SubnetPublic1AId
+  SubnetPublic1CId:
+    Value: !Ref SubnetPublic1C
+    Export:
+      Name: SubnetPublic1CId
+  SubnetPrivate1AId:
+    Value: !Ref SubnetPrivate1A
+    Export:
+      Name: SubnetPrivate1AId
+  SubnetPrivate1CId:
+    Value: !Ref SubnetPrivate1C
+    Export:
+      Name: SubnetPrivate1CId
+### Route Table ###
+  RoutePublic1Id:
+    Value: !Ref RoutePublic1
+    Export:
+      Name: RoutePublic1Id
+  RoutePrivate1Id:
+    Value: !Ref RoutePrivate1
+    Export:
+      Name: RoutePrivate1Id

@@ -1,0 +1,55 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description:  EC2 Launch template
+
+Parameters:
+  Prefix:
+    Type: String
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub "${Prefix}-launchtemplate"
+      LaunchTemplateData:
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+            - Key: Name
+              Value: !Sub "${Prefix}-server"
+        BlockDeviceMappings:
+          - Ebs:
+              VolumeSize: 8
+              VolumeType: gp3
+            DeviceName: /dev/xvda
+        ImageId: ami-079cd5448deeace01 # Amazon Linux 2023
+        InstanceType: t2.micro
+        KeyName: !Ref KeyName
+        NetworkInterfaces: 
+        - AssociatePublicIpAddress: "false"
+          DeviceIndex: "0"
+          Groups:
+            - !ImportValue SgEC2Id
+          DeleteOnTermination: "true"
+        IamInstanceProfile:
+          Arn: !ImportValue InstanceProfileArn
+        UserData:
+          Fn::Base64: |
+            #!/bin/bash
+            yum -y update
+            sudo yum -y install httpd
+            sudo systemctl start httpd.service
+            sudo systemctl enable httpd.service
+
+Outputs:
+  LaunchTemplateId:
+    Value: !Ref LaunchTemplate
+    Export:
+      Name: LaunchTemplateId
+
+  LaunchTemplateVersion:
+    Value: !GetAtt LaunchTemplate.LatestVersionNumber
+    Export:
+      Name: LaunchTemplateVersion
